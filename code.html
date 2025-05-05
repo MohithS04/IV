@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Car Dataset Visualization</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .filter-button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .filter-button:hover {
+            background-color: #45a049;
+        }
+        .manufacturer-checkbox {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        .manufacturer-checkbox input {
+            margin-right: 5px;
+        }
+        .visualization {
+            margin-bottom: 40px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        .visualization h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .tooltip {
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            pointer-events: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+            opacity: 0;
+        }
+        #scatter-plot, #treemap, #bar-chart {
+            width: 100%;
+            height: 500px;
+        }
+        .filter-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .filter-section select, .filter-section input {
+            margin: 0 10px;
+            padding: 5px;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            margin: 0 15px;
+        }
+        .filter-group label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .checkbox-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 5px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+        .view-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .view-controls button {
+            margin: 0 10px;
+        }
+        .highlight-bar {
+            stroke: #000;
+            stroke-width: 2px;
+        }
+        .treemap-cell {
+            stroke: #fff;
+            stroke-width: 1px;
+        }
+        .treemap-label {
+            font-size: 10px;
+            text-anchor: middle;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; color: #2c3e50;">Car Dataset Visualization</h1>
+    
+    <div class="visualization">
+        <h2>1. Performance Comparison (Scatter Plot)</h2>
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="x-axis-select">X-Axis:</label>
+                <select id="x-axis-select">
+                    <option value="Horsepower" selected>Horsepower</option>
+                    <option value="Weight">Weight</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="Cylinders">Cylinders</option>
+                    <option value="Acceleration">Acceleration</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="y-axis-select">Y-Axis:</label>
+                <select id="y-axis-select">
+                    <option value="MPG" selected>MPG</option>
+                    <option value="Horsepower">Horsepower</option>
+                    <option value="Weight">Weight</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="Acceleration">Acceleration</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="color-select">Color By:</label>
+                <select id="color-select">
+                    <option value="Origin" selected>Origin</option>
+                    <option value="Manufacturer">Manufacturer</option>
+                </select>
+            </div>
+        </div>
+        <div id="scatter-plot"></div>
+    </div>
+
+    <div class="visualization">
+        <h2>2. Manufacturer Insights (Treemap)</h2>
+        <div class="filter-section" style="flex-direction: column; align-items: center;">
+            <label for="treemap-metric" style="margin-bottom: 8px; font-weight: bold;">Select Metric:</label>
+            <select id="treemap-metric">
+                <option value="MPG" selected>Miles per Gallon (MPG)</option>
+                <option value="Horsepower">Horsepower</option>
+                <option value="Weight">Weight</option>
+                <option value="Displacement">Displacement</option>
+                <option value="Acceleration">Acceleration</option>
+                <option value="Count">Car Count</option>
+            </select>
+            <div style="margin-top: 10px;">
+                <label for="group-by" style="margin-bottom: 8px; font-weight: bold;">Group By:</label>
+                <select id="group-by">
+                    <option value="Origin-Manufacturer" selected>Origin → Manufacturer</option>
+                    <option value="Manufacturer">Manufacturer Only</option>
+                    <option value="Origin">Origin Only</option>
+                </select>
+            </div>
+        </div>
+        <div id="treemap"></div>
+    </div>
+
+    <div class="visualization">
+        <h2>3. Temporal and Geographical Analysis</h2>
+        <div class="filter-section">
+            <div class="filter-group">
+                <label for="metric-select">Select Metric:</label>
+                <select id="metric-select">
+                    <option value="MPG" selected>Miles per Gallon (MPG)</option>
+                    <option value="Horsepower">Horsepower</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="Acceleration">Acceleration</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="origin-filter">Filter by Origin:</label>
+                <div id="origin-checkboxes" class="checkbox-container">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+        <div class="view-controls">
+            <button id="animate-years" class="filter-button">Animate Through Years</button>
+            <button id="reset-animation" class="filter-button">Reset Animation</button>
+            <div id="year-slider-container" style="margin-top: 15px; width: 80%; margin: 15px auto;">
+                <label for="year-slider">Year: <span id="selected-year"></span></label>
+                <input type="range" id="year-slider" min="0" max="100" value="100" style="width: 100%;">
+            </div>
+        </div>
+        <div id="bar-chart"></div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Cross-highlighting functions
+        function highlightManufacturer(manufacturer) {
+            // Highlight in scatter plot
+            d3.selectAll('circle')
+                .style('opacity', d => d.Manufacturer === manufacturer ? 1 : 0.2);
+            
+            // Highlight in treemap
+            d3.selectAll('.treemap-cell')
+                .style('opacity', d => {
+                    if (d.data.name === manufacturer || 
+                        (d.data.children && d.data.children.some(child => child.name === manufacturer))) {
+                        return 1;
+                    }
+                    return 0.2;
+                })
+                .style('stroke-width', d => {
+                    if (d.data.name === manufacturer) return 2;
+                    return 1;
+                });
+            
+            // Highlight in bar chart
+            const manufacturerOrigin = d3.select(`.treemap-cell[data-manufacturer="${manufacturer}"]`).datum()?.data.origin;
+            if (manufacturerOrigin) {
+                d3.selectAll(`.origin-${manufacturerOrigin.replace(/\s+/g, '-')}`)
+                    .style('opacity', 1)
+                    .classed('highlight-bar', true);
+                d3.selectAll(`.bar:not(.origin-${manufacturerOrigin.replace(/\s+/g, '-')})`)
+                    .style('opacity', 0.2);
+            }
+        }
+
+        function highlightOrigin(origin) {
+            // Highlight in scatter plot
+            d3.selectAll('circle')
+                .style('opacity', d => d.Origin === origin ? 1 : 0.2);
+            
+            // Highlight in treemap
+            d3.selectAll('.treemap-cell')
+                .style('opacity', d => {
+                    if (d.data.origin === origin || 
+                        (d.data.name === origin) || 
+                        (d.parent && d.parent.data.name === origin)) {
+                        return 1;
+                    }
+                    return 0.2;
+                })
+                .style('stroke-width', d => {
+                    if (d.data.origin === origin || d.data.name === origin) return 2;
+                    return 1;
+                });
+            
+            // Highlight in bar chart
+            d3.selectAll(`.origin-${origin.replace(/\s+/g, '-')}`)
+                .style('opacity', 1)
+                .classed('highlight-bar', true);
+            
+            d3.selectAll(`.bar:not(.origin-${origin.replace(/\s+/g, '-')})`)
+                .style('opacity', 0.2);
+        }
+
+        function resetHighlights() {
+            // Reset in scatter plot
+            d3.selectAll('circle')
+                .style('opacity', 0.7);
+            
+            // Reset in treemap
+            d3.selectAll('.treemap-cell')
+                .style('opacity', 1)
+                .style('stroke-width', 1);
+            
+            // Reset in bar chart
+            d3.selectAll('.bar')
+                .style('opacity', 1)
+                .classed('highlight-bar', false);
+        }
+
+        // Load the CSV data
+        d3.csv("https://raw.githubusercontent.com/MohithS04/a1-cars.csv/refs/heads/main/a1-cars.csv").then(function(data) {
+            // Convert numeric columns
+            data.forEach(d => {
+                d.Horsepower = +d.Horsepower;
+                d.MPG = +d.MPG;
+                d.Weight = +d.Weight;
+                d['Model Year'] = +d['Model Year'];
+                d.Cylinders = +d.Cylinders;
+                d.Displacement = +d.Displacement;
+                d.Acceleration = +d.Acceleration;
+            });
+
+            // Create tooltip
+            const tooltip = d3.select("#tooltip");
+
+            // Create all visualizations
+            createScatterPlot(data);
+            createTreemap(data);
+            createBarChart(data);
+
+            // Scatter Plot with Dynamic Axes and Coloring
+            function createScatterPlot(data) {
+                const margin = {top: 20, right: 20, bottom: 50, left: 60};
+                const width = 800 - margin.left - margin.right;
+                const height = 500 - margin.top - margin.bottom;
+
+                const svg = d3.select("#scatter-plot")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                // Color scales
+                const originColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+                const manufacturerColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+                function updateScatterPlot() {
+                    // Clear previous plot
+                    svg.selectAll("*").remove();
+
+                    // Get current selections
+                    const xVar = document.getElementById('x-axis-select').value;
+                    const yVar = document.getElementById('y-axis-select').value;
+                    const colorVar = document.getElementById('color-select').value;
+
+                    // Scales
+                    const xScale = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => +d[xVar])])
+                        .range([0, width]);
+
+                    const yScale = d3.scaleLinear()
+                        .domain([0, d3.max(data, d => +d[yVar])])
+                        .range([height, 0]);
+
+                    const sizeScale = d3.scaleLinear()
+                        .domain([d3.min(data, d => d.Weight), d3.max(data, d => d.Weight)])
+                        .range([3, 15]);
+
+                    // Axes
+                    svg.append("g")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(xScale));
+
+                    svg.append("g")
+                        .call(d3.axisLeft(yScale));
+
+                    // Axis labels
+                    svg.append("text")
+                        .attr("transform", `translate(${width/2},${height + 40})`)
+                        .style("text-anchor", "middle")
+                        .text(xVar);
+
+                    svg.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 0 - margin.left)
+                        .attr("x", 0 - (height / 2))
+                        .attr("dy", "1em")
+                        .style("text-anchor", "middle")
+                        .text(yVar);
+
+                    // Data points
+                    svg.selectAll("circle")
+                        .data(data)
+                        .enter()
+                        .append("circle")
+                        .attr("cx", d => xScale(+d[xVar]))
+                        .attr("cy", d => yScale(+d[yVar]))
+                        .attr("r", d => sizeScale(d.Weight))
+                        .attr("fill", d => colorVar === 'Origin' 
+                            ? originColorScale(d.Origin) 
+                            : manufacturerColorScale(d.Manufacturer))
+                        .attr("opacity", 0.7)
+                        .attr("data-manufacturer", d => d.Manufacturer)
+                        .attr("data-origin", d => d.Origin)
+                        .on("mouseover", function(event, d) {
+                            // Highlight this data point
+                            d3.select(this)
+                                .attr("stroke", "#000")
+                                .attr("stroke-width", 2);
+                                
+                            // Cross-highlight in other visualizations
+                            if (colorVar === 'Origin') {
+                                highlightOrigin(d.Origin);
+                            } else {
+                                highlightManufacturer(d.Manufacturer);
+                            }
+                            
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9);
+                            tooltip.html(`Car: ${d.Car}<br/>
+                                        ${xVar}: ${d[xVar]}<br/>
+                                        ${yVar}: ${d[yVar]}<br/>
+                                        Weight: ${d.Weight} lbs<br/>
+                                        Acceleration: ${d.Acceleration} sec<br/>
+                                        Origin: ${d.Origin}<br/>
+                                        Manufacturer: ${d.Manufacturer}<br/>
+                                        Model Year: ${d['Model Year']}`)
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function() {
+                            // Remove highlight
+                            d3.select(this)
+                                .attr("stroke", null)
+                                .attr("stroke-width", null);
+                                
+                            // Reset cross-highlighting
+                            resetHighlights();
+                            
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                        });
+                        
+                    // Add legend for colors
+                    const legendData = colorVar === 'Origin' 
+                        ? [...new Set(data.map(d => d.Origin))].sort()
+                        : [...new Set(data.map(d => d.Manufacturer))].sort();
+                        
+                    const legendItemHeight = 20;
+                    const legend = svg.append("g")
+                        .attr("class", "legend")
+                        .attr("transform", `translate(${width - 100}, 10)`);
+                        
+                    legendData.forEach((value, i) => {
+                        const lg = legend.append("g")
+                            .attr("transform", `translate(0, ${i * legendItemHeight})`);
+                            
+                        lg.append("rect")
+                            .attr("width", 12)
+                            .attr("height", 12)
+                            .attr("fill", colorVar === 'Origin' ? originColorScale(value) : manufacturerColorScale(value));
+                            
+                        lg.append("text")
+                            .attr("x", 20)
+                            .attr("y", 10)
+                            .text(value)
+                            .style("font-size", "11px");
+                    });
+                }
+
+                // Initial plot
+                updateScatterPlot();
+
+                // Event listeners for dropdowns
+                document.getElementById('x-axis-select').addEventListener('change', updateScatterPlot);
+                document.getElementById('y-axis-select').addEventListener('change', updateScatterPlot);
+                document.getElementById('color-select').addEventListener('change', updateScatterPlot);
+            }
+
+            // Treemap with Manufacturer and Origin Insights
+            function createTreemap(data) {
+                const margin = {top: 10, right: 10, bottom: 10, left: 10};
+                const width = 800 - margin.left - margin.right;
+                const height = 500 - margin.top - margin.bottom;
+
+                const svg = d3.select("#treemap")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+                // Color scale for origins
+                const originColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+                
+                // Color scale for manufacturers (within each origin)
+                const manufacturerColorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+                function updateTreemap() {
+                    // Clear previous treemap
+                    svg.selectAll("*").remove();
+                    
+                    // Get selected metric and grouping
+                    const metric = document.getElementById('treemap-metric').value;
+                    const groupBy = document.getElementById('group-by').value;
+                    
+                    // Prepare hierarchical data structure based on grouping
+                    let hierarchicalData;
+                    
+                    if (groupBy === 'Origin-Manufacturer') {
+                        // Group by Origin then Manufacturer
+                        hierarchicalData = {
+                            name: "Cars",
+                            children: []
+                        };
+                        
+                        // Group by origin
+                        const originGroups = d3.group(data, d => d.Origin);
+                        
+                        originGroups.forEach((cars, origin) => {
+                            const originNode = {
+                                name: origin,
+                                origin: origin,
+                                children: []
+                            };
+                            
+                            // Group by manufacturer within each origin
+                            const manufacturerGroups = d3.group(cars, d => d.Manufacturer);
+                            
+                            manufacturerGroups.forEach((mfgCars, manufacturer) => {
+                                // Calculate value based on selected metric
+                                let value;
+                                if (metric === 'Count') {
+                                    value = mfgCars.length;
+                                } else {
+                                    value = d3.sum(mfgCars, d => d[metric]);
+                                }
+                                
+                                originNode.children.push({
+                                    name: manufacturer,
+                                    origin: origin,
+                                    value: value,
+                                    carCount: mfgCars.length
+                                });
+                            });
+                            
+                            hierarchicalData.children.push(originNode);
+                        });
+                    } else if (groupBy === 'Manufacturer') {
+                        // Group by Manufacturer only
+                        hierarchicalData = {
+                            name: "Cars",
+                            children: []
+                        };
+                        
+                        const manufacturerGroups = d3.group(data, d => d.Manufacturer);
+                        
+                        manufacturerGroups.forEach((mfgCars, manufacturer) => {
+                            // Get the origin for this manufacturer (using the first car's origin)
+                            const origin = mfgCars[0].Origin;
+                            
+                            // Calculate value based on selected metric
+                            let value;
+                            if (metric === 'Count') {
+                                value = mfgCars.length;
+                            } else {
+                                value = d3.sum(mfgCars, d => d[metric]);
+                            }
+                            
+                            hierarchicalData.children.push({
+                                name: manufacturer,
+                                origin: origin,
+                                value: value,
+                                carCount: mfgCars.length
+                            });
+                        });
+                    } else if (groupBy === 'Origin') {
+                        // Group by Origin only
+                        hierarchicalData = {
+                            name: "Cars",
+                            children: []
+                        };
+                        
+                        const originGroups = d3.group(data, d => d.Origin);
+                        
+                        originGroups.forEach((originCars, origin) => {
+                            // Calculate value based on selected metric
+                            let value;
+                            if (metric === 'Count') {
+                                value = originCars.length;
+                            } else {
+                                value = d3.sum(originCars, d => d[metric]);
+                            }
+                            
+                            hierarchicalData.children.push({
+                                name: origin,
+                                origin: origin,
+                                value: value,
+                                carCount: originCars.length
+                            });
+                        });
+                    }
+                    
+                    // Create hierarchy and calculate values
+                    const root = d3.hierarchy(hierarchicalData)
+                        .sum(d => d.value);
+                    
+                    // Create treemap layout
+                    const treemapLayout = d3.treemap()
+                        .size([width, height])
+                        .paddingOuter(3)
+                        .paddingTop(20)
+                        .paddingInner(1)
+                        .round(true);
+                    
+                    // Apply layout
+                    treemapLayout(root);
+                    
+                    // Create cells for each node
+                    const cells = svg.selectAll("g")
+                        .data(root.descendants())
+                        .enter()
+                        .append("g")
+                        .attr("transform", d => `translate(${d.x0},${d.y0})`);
+                    
+                    // Add rectangles for each cell
+                    cells.append("rect")
+                        .attr("width", d => d.x1 - d.x0)
+                        .attr("height", d => d.y1 - d.y0)
+                        .attr("class", "treemap-cell")
+                        .attr("data-manufacturer", d => d.data.name)
+                        .attr("data-origin", d => d.data.origin)
+                        .style("fill", d => {
+                            if (d.depth === 0) return "#fff"; // Root node
+                            if (d.depth === 1) return originColorScale(d.data.name);
+                            return d3.color(originColorScale(d.data.origin)).brighter(0.5);
+                        })
+                        .style("stroke", "#fff")
+                        .style("stroke-width", 1)
+                        .on("mouseover", function(event, d) {
+                            // Skip root node
+                            if (d.depth === 0) return;
+                            
+                            // Highlight this cell
+                            d3.select(this)
+                                .style("stroke", "#000")
+                                .style("stroke-width", 2);
+                            
+                            // Cross-highlight based on cell type
+                            if (d.data.name === d.data.origin) {
+                                highlightOrigin(d.data.name);
+                            } else {
+                                highlightManufacturer(d.data.name);
+                            }
+                            
+                            // Show tooltip
+                            let tooltipContent;
+                            if (d.depth === 1 && d.children) {
+                                // Origin group
+                                tooltipContent = `Origin: ${d.data.name}<br/>
+                                                Total ${metric}: ${d3.sum(d.children, c => c.value).toFixed(2)}<br/>
+                                                Car Count: ${d3.sum(d.children, c => c.data.carCount)}<br/>
+                                                Manufacturers: ${d.children.length}`;
+                            } else {
+                                // Manufacturer
+                                tooltipContent = `Manufacturer: ${d.data.name}<br/>
+                                                Origin: ${d.data.origin}<br/>
+                                                ${metric}: ${d.value.toFixed(2)}<br/>
+                                                Car Count: ${d.data.carCount}`;
+                            }
+                            
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9);
+                            tooltip.html(tooltipContent)
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function() {
+                            // Reset highlight
+                            d3.select(this)
+                                .style("stroke", "#fff")
+                                .style("stroke-width", 1);
+                            
+                            // Reset cross-highlighting
+                            resetHighlights();
+                            
+                            // Hide tooltip
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                        });
+                    
+                    // Add title for each cell
+                    cells.append("text")
+                        .attr("class", "treemap-label")
+                        .attr("x", d => (d.x1 - d.x0) / 2)
+                        .attr("y", d => d.depth === 1 ? 12 : (d.y1 - d.y0) / 2)
+                        .attr("dy", ".35em")
+                        .text(d => {
+                            if (d.depth === 0) return "";
+                            if ((d.x1 - d.x0) < 40) return ""; // Skip small cells
+                            return d.data.name;
+                        })
+                        .style("font-size", d => d.depth === 1 ? "12px" : "10px")
+                        .style("fill", d => d.depth === 1 ? "#fff" : "#000");
+                    
+                    // Add value label for leaf nodes
+                    cells.filter(d => !d.children && d.depth > 0 && (d.x1 - d.x0) >= 60)
+                        .append("text")
+                        .attr("class", "treemap-label")
+                        .attr("x", d => (d.x1 - d.x0) / 2)
+                        .attr("y", d => (d.y1 - d.y0) / 2 + 14)
+                        .attr("dy", ".35em")
+                        .text(d => {
+                            if (metric === 'Count') {
+                                return `${d.value} cars`;
+                            } else {
+                                return `${d.value.toFixed(1)} ${metric}`;
+                            }
+                        })
+                        .style("font-size", "9px")
+                        .style("fill", "#333");
+                }
+                
+                // Initial treemap
+                updateTreemap();
+                
+                // Event listeners for treemap controls
+                document.getElementById('treemap-metric').addEventListener('change', updateTreemap);
+                document.getElementById('group-by').addEventListener('change', updateTreemap);
+            }
+
+            // Bar Chart with Metric Selection and Interactivity
+            function createBarChart(data) {
+                const margin = {top: 20, right: 20, bottom: 50, left: 60};
+                const width = 800 - margin.left - margin.right;
+                const height = 500 - margin.top - margin.bottom;
+
+                const svg = d3.select("#bar-chart")
+                    .append("svg")
+                    .attr("width", width + margin.left + margin.right)
+                    .attr("height", height + margin.top + margin.bottom)
+                    .append("g")
+                    .attr("transform", `translate(${margin.left},${margin.top})`);
+                
+                // Get unique years and origins
+                const years = [...new Set(data.map(d => d['Model Year']))].sort();
+                const origins = [...new Set(data.map(d => d.Origin))].sort();
+                
+                // Initialize animation variables
+                let animationRunning = false;
+                let animationTimer;
+                let currentYearIndex = years.length - 1;
+                
+                // Populate origin checkboxes
+                const originCheckboxes = document.getElementById('origin-checkboxes');
+                const selectedOrigins = {};
+                
+                origins.forEach(origin => {
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'manufacturer-checkbox';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `origin-${origin.replace(/\s+/g, '-')}`;
+                    checkbox.value = origin;
+                    checkbox.checked = true; // Default to checked
+                    checkbox.addEventListener('change', updateChart);
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = checkbox.id;
+                    label.textContent = origin;
+                    
+                    checkboxDiv.appendChild(checkbox);
+                    checkboxDiv.appendChild(label);
+                    originCheckboxes.appendChild(checkboxDiv);
+                    
+                    // Initialize selected origins
+                    selectedOrigins[origin] = true;
+                });
+                
+                // Set up year slider
+                const yearSlider = document.getElementById('year-slider');
+                yearSlider.min = 0;
+                yearSlider.max = years.length - 1;
+                yearSlider.value = years.length - 1;
+                
+                // Update selected year display
+                const selectedYearDisplay = document.getElementById('selected-year');
+                selectedYearDisplay.textContent = years[yearSlider.value];
+                
+                // Add event listener for slider
+                yearSlider.addEventListener('input', function() {
+                    currentYearIndex = parseInt(this.value);
+                    selectedYearDisplay.textContent = years[currentYearIndex];
+                    updateChart();
+                });
+                
+                // Add the "Show All Years" checkbox
+                const viewControls = document.querySelector('.view-controls');
+                const showAllYearsContainer = document.createElement('div');
+                showAllYearsContainer.style.marginTop = '10px';
+                
+                const showAllYearsCheckbox = document.createElement('input');
+                showAllYearsCheckbox.type = 'checkbox';
+                showAllYearsCheckbox.id = 'show-all-years';
+                showAllYearsCheckbox.addEventListener('change', updateChart);
+                
+                const showAllYearsLabel = document.createElement('label');
+                showAllYearsLabel.htmlFor = 'show-all-years';
+                showAllYearsLabel.textContent = ' Show All Years';
+                showAllYearsLabel.style.marginLeft = '5px';
+                
+                showAllYearsContainer.appendChild(showAllYearsCheckbox);
+                showAllYearsContainer.appendChild(showAllYearsLabel);
+                viewControls.appendChild(showAllYearsContainer);
+                
+                // Animation buttons
+                document.getElementById('animate-years').addEventListener('click', function() {
+                    if (animationRunning) {
+                        // Stop animation if it's already running
+                        clearInterval(animationTimer);
+                        animationRunning = false;
+                        this.textContent = "Animate Through Years";
+                    } else {
+                        // Start animation
+                        animationRunning = true;
+                        this.textContent = "Pause Animation";
+                        
+                        // Reset to beginning if at the end
+                        if (currentYearIndex >= years.length - 1) {
+                            currentYearIndex = 0;
+                            yearSlider.value = currentYearIndex;
+                            selectedYearDisplay.textContent = years[currentYearIndex];
+                        }
+                        
+                        // Animation function
+                        animationTimer = setInterval(() => {
+                            currentYearIndex++;
+                            if (currentYearIndex >= years.length) {
+                                clearInterval(animationTimer);
+                                animationRunning = false;
+                                document.getElementById('animate-years').textContent = "Animate Through Years";
+                                return;
+                            }
+                            
+                            yearSlider.value = currentYearIndex;
+                            selectedYearDisplay.textContent = years[currentYearIndex];
+                            updateChart();
+                        }, 1000); // One second interval
+                    }
+                });
+                
+                // Reset animation button
+                document.getElementById('reset-animation').addEventListener('click', function() {
+                    // Stop animation if running
+                    if (animationRunning) {
+                        clearInterval(animationTimer);
+                        animationRunning = false;
+                        document.getElementById('animate-years').textContent = "Animate Through Years";
+                    }
+                    
+                    // Reset to all years
+                    currentYearIndex = years.length - 1;
+                    yearSlider.value = currentYearIndex;
+                    selectedYearDisplay.textContent = years[currentYearIndex];
+                    updateChart();
+                });
+
+                // Color scale for origins
+                const colorScale = d3.scaleOrdinal()
+                    .domain(origins)
+                    .range(d3.schemeCategory10);
+                
+                // Function to create a grouped bar chart
+                function createGroupedBarChart(filteredData, metric, selectedYears, selectedOriginsList) {
+                    // Clear previous chart
+                    svg.selectAll("*").remove();
+                    
+                    // Group data by year and origin
+                    const groupedData = d3.groups(
+                        filteredData, 
+                        d => d['Model Year'],
+                        d => d.Origin
+                    );
+                    
+                    // Convert to format needed for grouped bars
+                    const chartData = groupedData.map(([year, originGroups]) => {
+                        const yearData = { year };
+                        const manufacturersByOrigin = {};
+                        
+                        originGroups.forEach(([origin, cars]) => {
+                            // Calculate average for the metric
+                            yearData[origin] = d3.mean(cars, d => +d[metric]);
+                            
+                            // Store manufacturers for this origin and year
+                            manufacturersByOrigin[origin] = [...new Set(cars.map(d => d.Manufacturer))];
+                        });
+                        
+                        yearData.manufacturersByOrigin = manufacturersByOrigin;
+                        return yearData;
+                    });
+                    
+                    // Filter to selected years only
+                    const filteredChartData = chartData.filter(d => selectedYears.includes(d.year));
+                    
+                    // Set up scales
+                    const xScale0 = d3.scaleBand()
+                        .domain(selectedYears)
+                        .range([0, width])
+                        .padding(0.1);
+                    
+                    const xScale1 = d3.scaleBand()
+                        .domain(selectedOriginsList)
+                        .range([0, xScale0.bandwidth()])
+                        .padding(0.05);
+                    
+                    const yScale = d3.scaleLinear()
+                        .domain([0, d3.max(filteredChartData, d => 
+                            d3.max(selectedOriginsList, origin => d[origin] || 0)
+                        ) * 1.1])
+                        .range([height, 0]);
+                    
+                    // Add x axis
+                    svg.append("g")
+                        .attr("transform", `translate(0,${height})`)
+                        .call(d3.axisBottom(xScale0).tickFormat(d => d.toString()));
+                    
+                    // Add y axis
+                    svg.append("g")
+                        .call(d3.axisLeft(yScale));
+                    
+                    // Add bars
+                    const yearGroups = svg.selectAll(".year-group")
+                        .data(filteredChartData)
+                        .enter()
+                        .append("g")
+                        .attr("class", "year-group")
+                        .attr("transform", d => `translate(${xScale0(d.year)},0)`);
+                    
+                    yearGroups.selectAll("rect")
+                        .data(d => selectedOriginsList.map(origin => ({
+                            origin,
+                            value: d[origin] || 0,
+                            year: d.year,
+                            manufacturers: d.manufacturersByOrigin[origin] || []
+                        })))
+                        .enter()
+                        .append("rect")
+                        .attr("class", d => `bar origin-${d.origin.replace(/\s+/g, '-')}`)
+                        .attr("data-manufacturers", d => d.manufacturers.join(','))
+                        .attr("data-origin", d => d.origin)
+                        .attr("x", d => xScale1(d.origin))
+                        .attr("y", d => yScale(d.value))
+                        .attr("width", xScale1.bandwidth())
+                        .attr("height", d => height - yScale(d.value))
+                        .attr("fill", d => colorScale(d.origin))
+                        .on("mouseover", function(event, d) {
+                            // Highlight this bar
+                            d3.select(this)
+                                .attr("stroke", "black")
+                                .attr("stroke-width", 2);
+                                
+                            // Cross-highlight based on origin
+                            highlightOrigin(d.origin);
+                                
+                            // Show tooltip
+                            tooltip.transition()
+                                .duration(200)
+                                .style("opacity", .9);
+                            tooltip.html(`Year: ${d.year}<br/>
+                                        Origin: ${d.origin}<br/>
+                                        Average ${metric}: ${d.value.toFixed(2)}<br/>
+                                        Manufacturers: ${d.manufacturers.join(', ')}`)
+                                .style("left", (event.pageX + 10) + "px")
+                                .style("top", (event.pageY - 28) + "px");
+                        })
+                        .on("mouseout", function() {
+                            // Remove highlight
+                            d3.select(this)
+                                .attr("stroke", null)
+                                .attr("stroke-width", null);
+                                
+                            // Reset cross-highlighting
+                            resetHighlights();
+                                
+                            // Hide tooltip
+                            tooltip.transition()
+                                .duration(500)
+                                .style("opacity", 0);
+                        });
+                        
+                    // Add x-axis label
+                    svg.append("text")
+                        .attr("transform", `translate(${width/2},${height + 40})`)
+                        .style("text-anchor", "middle")
+                        .text("Model Year");
+                    
+                    // Add y-axis label
+                    svg.append("text")
+                        .attr("transform", "rotate(-90)")
+                        .attr("y", 0 - margin.left)
+                        .attr("x", 0 - (height / 2))
+                        .attr("dy", "1em")
+                        .style("text-anchor", "middle")
+                        .text(`Average ${metric}`);
+                    
+                    // Add legend
+                    const legend = svg.append("g")
+                        .attr("class", "legend")
+                        .attr("transform", `translate(${width - 100}, 0)`);
+                    
+                    selectedOriginsList.forEach((origin, i) => {
+                        const lg = legend.append("g")
+                            .attr("transform", `translate(0, ${i * 20})`);
+                            
+                        lg.append("rect")
+                            .attr("width", 12)
+                            .attr("height", 12)
+                            .attr("fill", colorScale(origin));
+                            
+                        lg.append("text")
+                            .attr("x", 20)
+                            .attr("y", 10)
+                            .text(origin);
+                    });
+                }
+                
+                // Update chart based on user selections
+                function updateChart() {
+                    // Update selected origins from checkboxes
+                    const checkboxes = originCheckboxes.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(checkbox => {
+                        selectedOrigins[checkbox.value] = checkbox.checked;
+                    });
+                    
+                    // Get array of selected origins
+                    const selectedOriginsList = Object.keys(selectedOrigins)
+                        .filter(key => selectedOrigins[key]);
+                    
+                    // Get current metric
+                    const selectedMetric = document.getElementById('metric-select').value;
+                    
+                    // Get current year
+                    const selectedYear = years[currentYearIndex];
+                    
+                    // If showing a single year or all years
+                    const showAllYears = document.getElementById('show-all-years').checked;
+                    const selectedYears = showAllYears ? years : [selectedYear];
+                    
+                    // Filter data
+                    const filteredData = data.filter(d => 
+                        selectedOriginsList.includes(d.Origin) && 
+                        (showAllYears || d['Model Year'] === selectedYear)
+                    );
+                    
+                    // If no data selected, show message
+                    if (filteredData.length === 0 || selectedOriginsList.length === 0) {
+                        svg.selectAll("*").remove();
+                        svg.append("text")
+                            .attr("x", width / 2)
+                            .attr("y", height / 2)
+                            .attr("text-anchor", "middle")
+                            .style("font-size", "16px")
+                            .text("Please select at least one origin");
+                        return;
+                    }
+                    
+                    // Create grouped bar chart
+                    createGroupedBarChart(filteredData, selectedMetric, selectedYears, selectedOriginsList);
+                }
+                
+                // Event listeners
+                document.getElementById('metric-select').addEventListener('change', updateChart);
+                
+                // Add select/deselect all origins buttons
+                const originButtonGroup = document.createElement('div');
+                originButtonGroup.style.marginTop = '10px';
+                originButtonGroup.style.display = 'flex';
+                originButtonGroup.style.justifyContent = 'center';
+                originButtonGroup.style.gap = '10px';
+                
+                const selectAllOriginsBtn = document.createElement('button');
+                selectAllOriginsBtn.className = 'filter-button';
+                selectAllOriginsBtn.textContent = 'Select All Origins';
+                selectAllOriginsBtn.addEventListener('click', () => {
+                    const checkboxes = originCheckboxes.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = true;
+                        selectedOrigins[checkbox.value] = true;
+                    });
+                    updateChart();
+                });
+                
+                const deselectAllOriginsBtn = document.createElement('button');
+                deselectAllOriginsBtn.className = 'filter-button';
+                deselectAllOriginsBtn.textContent = 'Deselect All Origins';
+                deselectAllOriginsBtn.addEventListener('click', () => {
+                    const checkboxes = originCheckboxes.querySelectorAll('input[type="checkbox"]');
+                    checkboxes.forEach(checkbox => {
+                        checkbox.checked = false;
+                        selectedOrigins[checkbox.value] = false;
+                    });
+                    updateChart();
+                });
+                
+                originButtonGroup.appendChild(selectAllOriginsBtn);
+                originButtonGroup.appendChild(deselectAllOriginsBtn);
+                document.getElementById('origin-checkboxes').parentNode.appendChild(originButtonGroup);
+                
+                // Initial chart
+                updateChart();
+            }
+        });
+    </script>
+</body>
+</html>

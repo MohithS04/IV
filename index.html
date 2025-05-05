@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualization Using D3.js</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            background-image: url("mercedes-amg-s-63-4matic-2018-4k-wallpaper-preview.jpg");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            text-align: center;
+        }
+        header {
+            width: 100%;
+            font-size: 60px;
+            color: #FFD700; /* gold for contrast */
+            margin-top: 150px;
+        }
+        footer {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            font-size: 16px;
+            color: #FFFFFF; /* white for visibility */
+            background-color: rgba(0, 0, 0, 0.6); /* darker overlay */
+            padding: 10px;
+            border-radius: 8px;
+        }
+        a {
+            margin: 5px 5px;
+            font-size: 20px;
+            color: #00FFFF; /* cyan */
+            background-color: rgba(0, 0, 0, 0.6); /* dark overlay for contrast */
+            padding: 8px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        a:hover {
+            color: #FFD700; /* gold on hover */
+        }
+    </style>
+</head>
+<body>
+    <header>Data Visualization Using D3.js</header>
+    <div style="margin: 20px 0;">
+        <a href="code.html">View visualizations</a>
+    </div>
+    <footer>
+        by Group-10 <br>
+        Mohith Reddy Seelam - 811312900 - mseelam1@kent.edu<br>
+        Sai Ashish Behara - 811312947 - sbehara@kent.edu<br>
+        Shivasaketh Simaladari - 811308569 - ssimalad@kent.edu<br>
+    </footer>
+    <script>
+        function openVisual(visualType) {
+            window.open(visualType + '.html', '_blank');
+        }
+    </script>
+</body>
+</html>
