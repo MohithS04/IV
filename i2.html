@@ -1,0 +1,1735 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automobiles Visualization Dashboard</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        h3 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: #34495e;
+        }
+        
+        .dashboard {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            overflow: hidden;
+        }
+        
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            padding: 10px;
+            background-color: #f2f2f2;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 120px;
+        }
+        
+        .control-group label {
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        select, button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            font-size: 14px;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .row {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .viz-container {
+            background-color: white;
+            border-radius: 5px;
+            padding: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        #scatter-container {
+            flex: 2;
+            margin-right: 20px;
+        }
+        
+        .viz-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #barchart-container {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        #piechart-container {
+            flex: 1;
+        }
+        
+        .pie-slice {
+            transition: transform 0.3s, opacity 0.3s;
+            cursor: pointer;
+        }
+        
+        .pie-slice:hover {
+            transform: translateX(10px) translateY(-5px);
+        }
+        
+        .pie-label {
+            font-size: 12px;
+            pointer-events: none;
+        }
+        
+        .tooltip {
+            position: absolute;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            pointer-events: none;
+            font-size: 12px;
+            max-width: 200px;
+            z-index: 10;
+        }
+        
+        .tooltip-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 3px;
+        }
+        
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }
+        
+        .tooltip-label {
+            font-weight: 500;
+            margin-right: 10px;
+            color: #555;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            margin-right: 5px;
+            border-radius: 2px;
+        }
+        
+        .axis-label {
+            font-size: 12px;
+            fill: #555;
+        }
+        
+        .selected {
+            stroke: #000;
+            stroke-width: 2px;
+        }
+        
+        .details {
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .details-table th {
+            background-color: #3498db;
+            color: white;
+            text-align: left;
+            padding: 8px;
+            font-size: 14px;
+        }
+        
+        .details-table td {
+            padding: 8px;
+            border-top: 1px solid #eee;
+            font-size: 13px;
+        }
+        
+        .details-table tr:nth-child(even) {
+            background-color: #f5f5f5;
+        }
+        
+        .metrics-row {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .metric {
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            padding: 10px;
+            text-align: center;
+            flex: 1;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: #7f8c8d;
+        }
+        
+        .brush .selection {
+            fill: #3498db;
+            fill-opacity: 0.1;
+            stroke: #2980b9;
+            stroke-width: 1px;
+        }
+        
+        .bar {
+            transition: fill 0.3s;
+        }
+        
+        .bar:hover {
+            fill-opacity: 0.8;
+        }
+        
+        .line {
+            fill: none;
+            stroke-width: 2;
+        }
+        
+        .point {
+            transition: fill 0.2s, r 0.2s;
+        }
+        
+        .point:hover {
+            stroke: #333;
+            stroke-width: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <h1>Automobile Dataset Visualization</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="x-axis">X-Axis</label>
+                <select id="x-axis">
+                    <option value="Horsepower">Horsepower</option>
+                    <option value="Weight">Weight</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="Acceleration">Acceleration</option>
+                    <option value="Cylinders">Cylinders</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="y-axis">Y-Axis</label>
+                <select id="y-axis">
+                    <option value="MPG">MPG</option>
+                    <option value="Horsepower">Horsepower</option>
+                    <option value="Weight">Weight</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="Acceleration">Acceleration</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="color-by">Color By</label>
+                <select id="color-by">
+                    <option value="Origin">Origin</option>
+                    <option value="Cylinders">Cylinders</option>
+                    <option value="Manufacturer">Manufacturer</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="size-by">Size By</label>
+                <select id="size-by">
+                    <option value="Weight">Weight</option>
+                    <option value="Horsepower">Horsepower</option>
+                    <option value="Displacement">Displacement</option>
+                    <option value="none">None</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="filter-year">Year Range</label>
+                <select id="filter-year">
+                    <option value="all">All Years</option>
+                    <option value="70-75">1970-1975</option>
+                    <option value="76-80">1976-1980</option>
+                    <option value="81-82">1981-1982</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="filter-origin">Origin</label>
+                <select id="filter-origin">
+                    <option value="all">All Origins</option>
+                    <option value="USA">USA</option>
+                    <option value="Europe">Europe</option>
+                    <option value="Japan">Japan</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>&nbsp;</label>
+                <button id="reset-button">Reset All</button>
+            </div>
+        </div>
+        
+        <div class="metrics-row">
+            <div class="metric">
+                <div class="metric-value" id="count-metric">0</div>
+                <div class="metric-label">Cars Selected</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="avg-mpg">0</div>
+                <div class="metric-label">Avg MPG</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="avg-hp">0</div>
+                <div class="metric-label">Avg Horsepower</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" id="avg-weight">0</div>
+                <div class="metric-label">Avg Weight</div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div id="scatter-container" class="viz-container">
+                <h3>Scatter Plot</h3>
+                <div id="scatter-vis"></div>
+            </div>
+            
+            <div class="viz-col">
+                <div id="barchart-container" class="viz-container">
+                    <h3>Bar Chart</h3>
+                    <div id="barchart-vis"></div>
+                </div>
+                
+                <div id="piechart-container" class="viz-container" style="margin-top: 20px;">
+                    <h3>Distribution by <span id="pie-title">Origin</span></h3>
+                    <div id="piechart-vis"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="viz-container">
+            <h3>Temporal Trends</h3>
+            <div id="linechart-vis"></div>
+        </div>
+        
+        <div class="details">
+            <h3>Selected Cars</h3>
+            <div id="details-content">
+                <p>Brush on the scatter plot to select cars and see details here.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Main visualization logic
+        const globalState = {
+            data: [],
+            filteredData: [],
+            selectedData: [],
+            xAxis: 'Horsepower',
+            yAxis: 'MPG',
+            colorBy: 'Origin',
+            sizeBy: 'Weight',
+            yearFilter: 'all',
+            originFilter: 'all'
+        };
+        
+        const colorSchemes = {
+            Origin: {
+                USA: '#1f77b4',
+                Europe: '#ff7f0e', 
+                Japan: '#2ca02c'
+            },
+            Cylinders: {
+                3: '#8dd3c7',
+                4: '#ffffb3',
+                5: '#bebada',
+                6: '#fb8072',
+                8: '#80b1d3',
+                12: '#fdb462'
+            },
+            Manufacturer: {
+                // Will be dynamically generated
+            }
+        };
+        
+        // Use sample data directly in the code
+        function loadData() {
+            // Sample data - 50 cars from the dataset
+            const sampleData = [
+                {Car: "Chevrolet Chevelle Malibu", Manufacturer: "Chevrolet", MPG: 18, Cylinders: 8, Displacement: 307, Horsepower: 130, Weight: 3504, Acceleration: 12, "Model Year": 70, Origin: "USA"},
+                {Car: "Buick Skylark 320", Manufacturer: "Buick", MPG: 15, Cylinders: 8, Displacement: 350, Horsepower: 165, Weight: 3693, Acceleration: 11.5, "Model Year": 70, Origin: "USA"},
+                {Car: "Plymouth Satellite", Manufacturer: "Plymouth", MPG: 18, Cylinders: 8, Displacement: 318, Horsepower: 150, Weight: 3436, Acceleration: 11, "Model Year": 70, Origin: "USA"},
+                {Car: "AMC Rebel SST", Manufacturer: "AMC", MPG: 16, Cylinders: 8, Displacement: 304, Horsepower: 150, Weight: 3433, Acceleration: 12, "Model Year": 70, Origin: "USA"},
+                {Car: "Ford Torino", Manufacturer: "Ford", MPG: 17, Cylinders: 8, Displacement: 302, Horsepower: 140, Weight: 3449, Acceleration: 10.5, "Model Year": 70, Origin: "USA"},
+                {Car: "Ford Galaxie 500", Manufacturer: "Ford", MPG: 15, Cylinders: 8, Displacement: 429, Horsepower: 198, Weight: 4341, Acceleration: 10, "Model Year": 70, Origin: "USA"},
+                {Car: "Chevrolet Impala", Manufacturer: "Chevrolet", MPG: 14, Cylinders: 8, Displacement: 454, Horsepower: 220, Weight: 4354, Acceleration: 9, "Model Year": 70, Origin: "USA"},
+                {Car: "Plymouth Fury III", Manufacturer: "Plymouth", MPG: 14, Cylinders: 8, Displacement: 440, Horsepower: 215, Weight: 4312, Acceleration: 8.5, "Model Year": 70, Origin: "USA"},
+                {Car: "Pontiac Catalina", Manufacturer: "Pontiac", MPG: 14, Cylinders: 8, Displacement: 455, Horsepower: 225, Weight: 4425, Acceleration: 10, "Model Year": 70, Origin: "USA"},
+                {Car: "AMC Ambassador DPL", Manufacturer: "AMC", MPG: 15, Cylinders: 8, Displacement: 390, Horsepower: 190, Weight: 3850, Acceleration: 8.5, "Model Year": 70, Origin: "USA"},
+                {Car: "Datsun PL510", Manufacturer: "Datsun", MPG: 27, Cylinders: 4, Displacement: 97, Horsepower: 88, Weight: 2130, Acceleration: 14.5, "Model Year": 70, Origin: "Japan"},
+                {Car: "Volkswagen 1131 Deluxe Sedan", Manufacturer: "Volkswagen", MPG: 26, Cylinders: 4, Displacement: 97, Horsepower: 46, Weight: 1835, Acceleration: 20.5, "Model Year": 70, Origin: "Europe"},
+                {Car: "Peugeot 504", Manufacturer: "Peugeot", MPG: 25, Cylinders: 4, Displacement: 110, Horsepower: 87, Weight: 2672, Acceleration: 17.5, "Model Year": 70, Origin: "Europe"},
+                {Car: "Audi 100 LS", Manufacturer: "Audi", MPG: 24, Cylinders: 4, Displacement: 107, Horsepower: 90, Weight: 2430, Acceleration: 14.5, "Model Year": 70, Origin: "Europe"},
+                {Car: "Saab 99E", Manufacturer: "Saab", MPG: 25, Cylinders: 4, Displacement: 104, Horsepower: 95, Weight: 2375, Acceleration: 17.5, "Model Year": 70, Origin: "Europe"},
+                {Car: "BMW 2002", Manufacturer: "BMW", MPG: 26, Cylinders: 4, Displacement: 121, Horsepower: 113, Weight: 2234, Acceleration: 12.5, "Model Year": 70, Origin: "Europe"},
+                {Car: "Toyota Corona Mark II", Manufacturer: "Toyota", MPG: 24, Cylinders: 4, Displacement: 113, Horsepower: 95, Weight: 2278, Acceleration: 15.5, "Model Year": 72, Origin: "Japan"},
+                {Car: "Plymouth Duster", Manufacturer: "Plymouth", MPG: 22, Cylinders: 6, Displacement: 198, Horsepower: 95, Weight: 2833, Acceleration: 15.5, "Model Year": 72, Origin: "USA"},
+                {Car: "Volkswagen Super Beetle 117", Manufacturer: "Volkswagen", MPG: 26, Cylinders: 4, Displacement: 97, Horsepower: 46, Weight: 1950, Acceleration: 21, "Model Year": 73, Origin: "Europe"},
+                {Car: "Mazda RX2 Coupe", Manufacturer: "Mazda", MPG: 19, Cylinders: 3, Displacement: 70, Horsepower: 97, Weight: 2330, Acceleration: 13.5, "Model Year": 73, Origin: "Japan"},
+                {Car: "Honda Civic", Manufacturer: "Honda", MPG: 31, Cylinders: 4, Displacement: 76, Horsepower: 52, Weight: 1649, Acceleration: 16.5, "Model Year": 74, Origin: "Japan"},
+                {Car: "Fiat X1.9", Manufacturer: "Fiat", MPG: 31, Cylinders: 4, Displacement: 79, Horsepower: 67, Weight: 2000, Acceleration: 16, "Model Year": 74, Origin: "Europe"},
+                {Car: "Plymouth Valiant Custom", Manufacturer: "Plymouth", MPG: 19, Cylinders: 6, Displacement: 225, Horsepower: 95, Weight: 3264, Acceleration: 16, "Model Year": 75, Origin: "USA"},
+                {Car: "Chevrolet Nova", Manufacturer: "Chevrolet", MPG: 18, Cylinders: 6, Displacement: 250, Horsepower: 105, Weight: 3459, Acceleration: 16, "Model Year": 75, Origin: "USA"},
+                {Car: "Mercury Monarch", Manufacturer: "Mercury", MPG: 15, Cylinders: 6, Displacement: 250, Horsepower: 72, Weight: 3432, Acceleration: 21, "Model Year": 75, Origin: "USA"},
+                {Car: "Ford Maverick", Manufacturer: "Ford", MPG: 15, Cylinders: 6, Displacement: 250, Horsepower: 72, Weight: 3158, Acceleration: 19.5, "Model Year": 75, Origin: "USA"},
+                {Car: "Pontiac Catalina", Manufacturer: "Pontiac", MPG: 16, Cylinders: 8, Displacement: 400, Horsepower: 170, Weight: 4668, Acceleration: 11.5, "Model Year": 75, Origin: "USA"},
+                {Car: "Honda Civic CVCC", Manufacturer: "Honda", MPG: 33, Cylinders: 4, Displacement: 91, Horsepower: 53, Weight: 1795, Acceleration: 17.5, "Model Year": 76, Origin: "Japan"},
+                {Car: "Dodge Aspen SE", Manufacturer: "Dodge", MPG: 20, Cylinders: 6, Displacement: 225, Horsepower: 100, Weight: 3651, Acceleration: 17.7, "Model Year": 76, Origin: "USA"},
+                {Car: "Ford Mustang II", Manufacturer: "Ford", MPG: 26, Cylinders: 4, Displacement: 140, Horsepower: 72, Weight: 2565, Acceleration: 13.6, "Model Year": 77, Origin: "USA"},
+                {Car: "Datsun 810", Manufacturer: "Datsun", MPG: 22, Cylinders: 6, Displacement: 146, Horsepower: 97, Weight: 2815, Acceleration: 14.5, "Model Year": 77, Origin: "Japan"},
+                {Car: "Toyota Corolla", Manufacturer: "Toyota", MPG: 32.4, Cylinders: 4, Displacement: 108, Horsepower: 75, Weight: 2350, Acceleration: 16.8, "Model Year": 78, Origin: "Japan"},
+                {Car: "Oldsmobile Cutlass Salon Brougham", Manufacturer: "Oldsmobile", MPG: 23.9, Cylinders: 8, Displacement: 260, Horsepower: 90, Weight: 3420, Acceleration: 22.2, "Model Year": 78, Origin: "USA"},
+                {Car: "Datsun 200-SX", Manufacturer: "Datsun", MPG: 23.9, Cylinders: 4, Displacement: 119, Horsepower: 97, Weight: 2405, Acceleration: 14.9, "Model Year": 78, Origin: "Japan"},
+                {Car: "Mercury Zephyr", Manufacturer: "Mercury", MPG: 20.8, Cylinders: 6, Displacement: 200, Horsepower: 85, Weight: 3070, Acceleration: 16.7, "Model Year": 78, Origin: "USA"},
+                {Car: "Volkswagen Rabbit Custom", Manufacturer: "Volkswagen", MPG: 31.9, Cylinders: 4, Displacement: 89, Horsepower: 71, Weight: 1925, Acceleration: 14, "Model Year": 79, Origin: "Europe"},
+                {Car: "Mazda GLC Deluxe", Manufacturer: "Mazda", MPG: 34.1, Cylinders: 4, Displacement: 86, Horsepower: 65, Weight: 1975, Acceleration: 15.2, "Model Year": 79, Origin: "Japan"},
+                {Car: "Dodge Colt Hatchback Custom", Manufacturer: "Dodge", MPG: 35.7, Cylinders: 4, Displacement: 98, Horsepower: 80, Weight: 1915, Acceleration: 14.4, "Model Year": 79, Origin: "USA"},
+                {Car: "AMC Spirit DL", Manufacturer: "AMC", MPG: 27.4, Cylinders: 4, Displacement: 121, Horsepower: 80, Weight: 2670, Acceleration: 15, "Model Year": 79, Origin: "USA"},
+                {Car: "Mercedes Benz 300D", Manufacturer: "Mercedes", MPG: 25.4, Cylinders: 5, Displacement: 183, Horsepower: 77, Weight: 3530, Acceleration: 20.1, "Model Year": 79, Origin: "Europe"},
+                {Car: "Chevrolet Citation", Manufacturer: "Chevrolet", MPG: 28.8, Cylinders: 6, Displacement: 173, Horsepower: 115, Weight: 2595, Acceleration: 11.3, "Model Year": 79, Origin: "USA"},
+                {Car: "Toyota Corona", Manufacturer: "Toyota", MPG: 31.5, Cylinders: 4, Displacement: 98, Horsepower: 68, Weight: 2045, Acceleration: 18.5, "Model Year": 80, Origin: "Japan"},
+                {Car: "Datsun 210", Manufacturer: "Datsun", MPG: 31.8, Cylinders: 4, Displacement: 85, Horsepower: 65, Weight: 2020, Acceleration: 19.2, "Model Year": 80, Origin: "Japan"},
+                {Car: "Volkswagen Rabbit", Manufacturer: "Volkswagen", MPG: 29.8, Cylinders: 4, Displacement: 89, Horsepower: 62, Weight: 1845, Acceleration: 15.3, "Model Year": 80, Origin: "Europe"},
+                {Car: "Honda Civic 1500 GL", Manufacturer: "Honda", MPG: 44.6, Cylinders: 4, Displacement: 91, Horsepower: 67, Weight: 1850, Acceleration: 13.8, "Model Year": 80, Origin: "Japan"},
+                {Car: "Ford Escort 4W", Manufacturer: "Ford", MPG: 34.4, Cylinders: 4, Displacement: 98, Horsepower: 65, Weight: 2045, Acceleration: 16.2, "Model Year": 81, Origin: "USA"},
+                {Car: "Toyota Starlet", Manufacturer: "Toyota", MPG: 39.1, Cylinders: 4, Displacement: 79, Horsepower: 58, Weight: 1755, Acceleration: 16.9, "Model Year": 81, Origin: "Japan"},
+                {Car: "Plymouth Reliant", Manufacturer: "Plymouth", MPG: 27.2, Cylinders: 4, Displacement: 135, Horsepower: 84, Weight: 2490, Acceleration: 15.7, "Model Year": 81, Origin: "USA"},
+                {Car: "Buick Century", Manufacturer: "Buick", MPG: 22.4, Cylinders: 6, Displacement: 231, Horsepower: 110, Weight: 3415, Acceleration: 15.8, "Model Year": 81, Origin: "USA"},
+                {Car: "Oldsmobile Cutlass LS", Manufacturer: "Oldsmobile", MPG: 26.6, Cylinders: 8, Displacement: 350, Horsepower: 105, Weight: 3725, Acceleration: 19, "Model Year": 81, Origin: "USA"},
+                {Car: "Ford Mustang GL", Manufacturer: "Ford", MPG: 27, Cylinders: 4, Displacement: 140, Horsepower: 86, Weight: 2790, Acceleration: 15.6, "Model Year": 82, Origin: "USA"},
+                {Car: "Chevrolet Cavalier", Manufacturer: "Chevrolet", MPG: 28, Cylinders: 4, Displacement: 112, Horsepower: 88, Weight: 2605, Acceleration: 19.6, "Model Year": 82, Origin: "USA"}
+            ];
+            
+            const data = sampleData;
+            
+            // Dynamically generate manufacturer colors
+            const manufacturers = [...new Set(data.map(d => d.Manufacturer))];
+            const manufacturerColors = d3.scaleOrdinal()
+                .domain(manufacturers)
+                .range(d3.schemeCategory10);
+            
+            manufacturers.forEach(m => {
+                colorSchemes.Manufacturer[m] = manufacturerColors(m);
+            });
+            
+            // Initialize global state
+            globalState.data = data;
+            globalState.filteredData = [...data];
+            globalState.selectedData = [...data];
+            
+            // Initialize visualizations
+            initVisualizations();
+        }
+        
+        function initVisualizations() {
+            // Set up event listeners for controls
+            document.getElementById('x-axis').addEventListener('change', e => {
+                globalState.xAxis = e.target.value;
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('y-axis').addEventListener('change', e => {
+                globalState.yAxis = e.target.value;
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('color-by').addEventListener('change', e => {
+                globalState.colorBy = e.target.value;
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('size-by').addEventListener('change', e => {
+                globalState.sizeBy = e.target.value;
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('filter-year').addEventListener('change', e => {
+                globalState.yearFilter = e.target.value;
+                filterData();
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('filter-origin').addEventListener('change', e => {
+                globalState.originFilter = e.target.value;
+                filterData();
+                updateAllVisualizations();
+            });
+            
+            document.getElementById('reset-button').addEventListener('click', () => {
+                resetFilters();
+            });
+            
+            // Initialize visualizations
+            createScatterPlot();
+            createBarChart();
+            createLineChart();
+            createPieChart();
+            updateMetrics();
+        }
+        
+        function filterData() {
+            let filtered = [...globalState.data];
+            
+            // Filter by year range
+            if (globalState.yearFilter !== 'all') {
+                const [min, max] = globalState.yearFilter.split('-').map(y => parseInt(y));
+                filtered = filtered.filter(d => d['Model Year'] >= min && d['Model Year'] <= max);
+            }
+            
+            // Filter by origin
+            if (globalState.originFilter !== 'all') {
+                filtered = filtered.filter(d => d.Origin === globalState.originFilter);
+            }
+            
+            globalState.filteredData = filtered;
+            globalState.selectedData = filtered; // Reset selection to all filtered data
+            
+            // Update metrics and details
+            updateMetrics();
+            updateDetails();
+        }
+        
+        function resetFilters() {
+            // Reset control values
+            document.getElementById('x-axis').value = 'Horsepower';
+            document.getElementById('y-axis').value = 'MPG';
+            document.getElementById('color-by').value = 'Origin';
+            document.getElementById('size-by').value = 'Weight';
+            document.getElementById('filter-year').value = 'all';
+            document.getElementById('filter-origin').value = 'all';
+            
+            // Reset state
+            globalState.xAxis = 'Horsepower';
+            globalState.yAxis = 'MPG';
+            globalState.colorBy = 'Origin';
+            globalState.sizeBy = 'Weight';
+            globalState.yearFilter = 'all';
+            globalState.originFilter = 'all';
+            
+            // Reset filtered data
+            globalState.filteredData = [...globalState.data];
+            globalState.selectedData = [...globalState.data];
+            
+            // Update everything
+            updateAllVisualizations();
+        }
+        
+        function updateSelection(selection) {
+            globalState.selectedData = selection;
+            updateMetrics();
+            updateDetails();
+            updateScatterSelection();
+            updateBarChartWithSelection();
+            updateLineChartWithSelection();
+            updatePieChartWithSelection();
+        }
+        
+        function updateMetrics() {
+            const data = globalState.selectedData;
+            const count = data.length;
+            
+            // Calculate averages
+            const avgMpg = d3.mean(data, d => d.MPG).toFixed(1);
+            const avgHp = d3.mean(data, d => d.Horsepower).toFixed(1);
+            const avgWeight = d3.mean(data, d => d.Weight).toFixed(0);
+            
+            // Update the DOM
+            document.getElementById('count-metric').textContent = count;
+            document.getElementById('avg-mpg').textContent = avgMpg;
+            document.getElementById('avg-hp').textContent = avgHp;
+            document.getElementById('avg-weight').textContent = avgWeight;
+        }
+        
+        function updateDetails() {
+            const detailsElement = document.getElementById('details-content');
+            const data = globalState.selectedData;
+            
+            if (data.length === 0) {
+                detailsElement.innerHTML = '<p>No cars selected. Brush on the scatter plot to select cars.</p>';
+                return;
+            }
+            
+            if (data.length > 20) {
+                detailsElement.innerHTML = `<p>${data.length} cars selected. Showing the first 20:</p>`;
+            }
+            
+            const tableData = data.slice(0, 20); // Limit to first 20 for performance
+            
+            const tableHTML = `
+                <table class="details-table">
+                    <thead>
+                        <tr>
+                            <th>Car</th>
+                            <th>Manufacturer</th>
+                            <th>MPG</th>
+                            <th>Horsepower</th>
+                            <th>Weight</th>
+                            <th>Year</th>
+                            <th>Origin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableData.map(d => `
+                            <tr>
+                                <td>${d.Car}</td>
+                                <td>${d.Manufacturer}</td>
+                                <td>${d.MPG}</td>
+                                <td>${d.Horsepower}</td>
+                                <td>${d.Weight}</td>
+                                <td>${d['Model Year']}</td>
+                                <td>${d.Origin}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            
+            detailsElement.innerHTML = tableHTML;
+        }
+        
+        // Scatter Plot
+        let scatterPlot, scatterX, scatterY, scatterBrush;
+        
+        function createScatterPlot() {
+            const container = document.getElementById('scatter-vis');
+            const width = container.clientWidth;
+            const height = 400;
+            const margin = {top: 40, right: 30, bottom: 50, left: 60};
+            
+            // Create SVG
+            const svg = d3.select('#scatter-vis')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Create scales
+            scatterX = d3.scaleLinear()
+                .domain([0, d3.max(globalState.data, d => d[globalState.xAxis])])
+                .range([margin.left, width - margin.right])
+                .nice();
+            
+            scatterY = d3.scaleLinear()
+                .domain([0, d3.max(globalState.data, d => d[globalState.yAxis])])
+                .range([height - margin.bottom, margin.top])
+                .nice();
+            
+            // Create legend
+            createLegend(svg, width, margin, globalState.colorBy);
+            
+            // Axes
+            const xAxis = svg.append('g')
+                .attr('transform', `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(scatterX));
+            
+            const yAxis = svg.append('g')
+                .attr('transform', `translate(${margin.left},0)`)
+                .call(d3.axisLeft(scatterY));
+            
+            // Axis labels
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('x', width / 2)
+                .attr('y', height - 10)
+                .text(globalState.xAxis);
+            
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('transform', `translate(${margin.left / 3},${height / 2}) rotate(-90)`)
+                .text(globalState.yAxis);
+            
+            // Create scatter plot group
+            scatterPlot = svg.append('g')
+                .attr('class', 'scatter-plot');
+                
+            // Add brush
+            const brushGroup = svg.append('g')
+                .attr('class', 'brush');
+                
+            scatterBrush = d3.brush()
+                .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
+                .on('end', brushended);
+                
+            brushGroup.call(scatterBrush);
+            
+            // Tooltip
+            const tooltip = d3.select('body').append('div')
+                .attr('class', 'tooltip')
+                .style('opacity', 0);
+            
+            // Update scatter plot with data
+            updateScatterPlot();
+            
+            function brushended(event) {
+                if (!event.selection) {
+                    // If no selection, return to initial state
+                    globalState.selectedData = [...globalState.filteredData];
+                } else {
+                    // Filter based on brush
+                    const [[x0, y0], [x1, y1]] = event.selection;
+                    
+                    globalState.selectedData = globalState.filteredData.filter(d => {
+                        const x = scatterX(d[globalState.xAxis]);
+                        const y = scatterY(d[globalState.yAxis]);
+                        return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+                    });
+                }
+                
+                updateSelection(globalState.selectedData);
+            }
+        }
+        
+        function createLegend(svg, width, margin, colorBy) {
+            // Remove any existing legend
+            svg.select('.legend-group').remove();
+            
+            const legendGroup = svg.append('g')
+                .attr('class', 'legend-group')
+                .attr('transform', `translate(${width / 2}, 20)`);
+            
+            const categories = Object.keys(colorSchemes[colorBy]);
+            const legendWidth = categories.length * 70; // Adjust spacing as needed
+            
+            const items = legendGroup.selectAll('.legend-item')
+                .data(categories)
+                .enter()
+                .append('g')
+                .attr('class', 'legend-item')
+                .attr('transform', (d, i) => {
+                    const x = (i - categories.length / 2) * 70 + legendWidth / 2 - 35;
+                    return `translate(${x}, 0)`;
+                });
+            
+            items.append('rect')
+                .attr('width', 12)
+                .attr('height', 12)
+                .attr('fill', d => colorSchemes[colorBy][d]);
+                
+            items.append('text')
+                .attr('x', 16)
+                .attr('y', 10)
+                .style('font-size', '10px')
+                .text(d => d);
+        }
+        
+        function updateScatterPlot() {
+            const data = globalState.filteredData;
+            const container = document.getElementById('scatter-vis');
+            const width = container.clientWidth;
+            const height = 400;
+            const margin = {top: 40, right: 30, bottom: 50, left: 60};
+            
+            // Update scales
+            scatterX.domain([0, d3.max(data, d => d[globalState.xAxis]) * 1.05])
+                .range([margin.left, width - margin.right]);
+                
+            scatterY.domain([0, d3.max(data, d => d[globalState.yAxis]) * 1.05])
+                .range([height - margin.bottom, margin.top]);
+            
+            // Update axes
+            d3.select('#scatter-vis svg g:nth-of-type(2)')
+                .transition()
+                .duration(500)
+                .call(d3.axisBottom(scatterX));
+                
+            d3.select('#scatter-vis svg g:nth-of-type(3)')
+                .transition()
+                .duration(500)
+                .call(d3.axisLeft(scatterY));
+            
+            // Update axis labels
+            d3.select('#scatter-vis svg .axis-label:nth-of-type(1)')
+                .text(globalState.xAxis);
+                
+            d3.select('#scatter-vis svg .axis-label:nth-of-type(2)')
+                .text(globalState.yAxis);
+            
+            // Update legend
+            createLegend(d3.select('#scatter-vis svg'), width, margin, globalState.colorBy);
+            
+            // Size scale
+            const sizeScale = d3.scaleSqrt()
+                .domain([d3.min(data, d => d[globalState.sizeBy]), 
+                        d3.max(data, d => d[globalState.sizeBy])])
+                .range([3, 10]);
+            
+            // Tooltip
+            const tooltip = d3.select('body').select('.tooltip');
+            
+            // Update scatter plot
+            const dots = scatterPlot.selectAll('circle')
+                .data(data);
+            
+            dots.exit().remove();
+            
+            dots.enter()
+                .append('circle')
+                .attr('class', 'point')
+                .merge(dots)
+                .transition()
+                .duration(500)
+                .attr('cx', d => scatterX(d[globalState.xAxis]))
+                .attr('cy', d => scatterY(d[globalState.yAxis]))
+                .attr('r', d => globalState.sizeBy === 'none' ? 5 : sizeScale(d[globalState.sizeBy]))
+                .attr('fill', d => colorSchemes[globalState.colorBy][d[globalState.colorBy]]);
+            
+            // Add tooltip events
+            scatterPlot.selectAll('circle')
+                .on('mouseover', function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style('opacity', .9);
+                        
+                    tooltip.html(`
+                        <div class="tooltip-title">${d.Car}</div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Manufacturer:</span>
+                            <span>${d.Manufacturer}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">MPG:</span>
+                            <span>${d.MPG}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Horsepower:</span>
+                            <span>${d.Horsepower}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Weight:</span>
+                            <span>${d.Weight}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Year:</span>
+                            <span>${d['Model Year']}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Origin:</span>
+                            <span>${d.Origin}</span>
+                        </div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.transition()
+                        .duration(500)
+                        .style('opacity', 0);
+                });
+        }
+        
+        function updateScatterSelection() {
+            const selectedIds = new Set(globalState.selectedData.map(d => d.Car));
+            
+            scatterPlot.selectAll('circle')
+                .classed('selected', d => selectedIds.has(d.Car))
+                .style('opacity', d => selectedIds.has(d.Car) ? 1 : 0.3);
+        }
+        
+        // Bar Chart
+        let barChart, barX, barY;
+        
+        function createBarChart() {
+            const container = document.getElementById('barchart-vis');
+            const width = container.clientWidth;
+            const height = 400;
+            const margin = {top: 40, right: 30, bottom: 50, left: 60};
+            
+            // Create SVG
+            const svg = d3.select('#barchart-vis')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Create scales
+            barX = d3.scaleLinear()
+                .range([margin.left, width - margin.right]);
+                
+            barY = d3.scaleBand()
+                .range([margin.top, height - margin.bottom])
+                .padding(0.2);
+            
+            // Create axes
+            const xAxis = svg.append('g')
+                .attr('transform', `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(barX));
+            
+            const yAxis = svg.append('g')
+                .attr('transform', `translate(${margin.left},0)`)
+                .call(d3.axisLeft(barY));
+            
+            // Create axis labels
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('x', width / 2)
+                .attr('y', height - 10)
+                .text('Average MPG');
+            
+            // Create bar chart group
+            barChart = svg.append('g')
+                .attr('class', 'bar-chart');
+                
+            // Update with data
+            updateBarChart();
+        }
+        
+        function updateBarChart() {
+            const data = globalState.filteredData;
+            const container = document.getElementById('barchart-vis');
+            const width = container.clientWidth;
+            const height = 400;
+            const margin = {top: 40, right: 30, bottom: 50, left: 60};
+            
+            // Group data by the colorBy attribute and calculate average MPG
+            const groupedData = Array.from(
+                d3.group(data, d => d[globalState.colorBy]),
+                ([key, value]) => ({
+                    category: key,
+                    mpg: d3.mean(value, d => d.MPG),
+                    horsepower: d3.mean(value, d => d.Horsepower),
+                    weight: d3.mean(value, d => d.Weight),
+                    count: value.length
+                })
+            ).sort((a, b) => b.mpg - a.mpg); // Sort by MPG descending
+            
+            // Update scales
+            barX.domain([0, d3.max(groupedData, d => d.mpg) * 1.1]);
+            barY.domain(groupedData.map(d => d.category));
+            
+            // Update axes
+            d3.select('#barchart-vis svg g:nth-of-type(1)')
+                .transition()
+                .duration(500)
+                .call(d3.axisBottom(barX));
+                
+            d3.select('#barchart-vis svg g:nth-of-type(2)')
+                .transition()
+                .duration(500)
+                .call(d3.axisLeft(barY));
+            
+            // Update bars
+            const bars = barChart.selectAll('.bar')
+                .data(groupedData, d => d.category);
+                
+            bars.exit().remove();
+            
+            bars.enter()
+                .append('rect')
+                .attr('class', 'bar')
+                .merge(bars)
+                .transition()
+                .duration(500)
+                .attr('x', margin.left)
+                .attr('y', d => barY(d.category))
+                .attr('width', d => barX(d.mpg) - margin.left)
+                .attr('height', barY.bandwidth())
+                .attr('fill', d => colorSchemes[globalState.colorBy][d.category]);
+                
+            // Add labels
+            const labels = barChart.selectAll('.bar-label')
+                .data(groupedData, d => d.category);
+                
+            labels.exit().remove();
+            
+            labels.enter()
+                .append('text')
+                .attr('class', 'bar-label')
+                .merge(labels)
+                .transition()
+                .duration(500)
+                .attr('x', d => barX(d.mpg) + 5)
+                .attr('y', d => barY(d.category) + barY.bandwidth() / 2 + 4)
+                .attr('font-size', '10px')
+                .text(d => d.mpg.toFixed(1));
+                
+            // Add click interaction
+            barChart.selectAll('.bar')
+                .on('click', function(event, d) {
+                    // Filter to show only cars of this category
+                    const categoryData = globalState.filteredData.filter(car => 
+                        car[globalState.colorBy] === d.category
+                    );
+                    updateSelection(categoryData);
+                });
+                
+            // Add tooltip
+            const tooltip = d3.select('body').select('.tooltip');
+            
+            barChart.selectAll('.bar')
+                .on('mouseover', function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style('opacity', .9);
+                        
+                    tooltip.html(`
+                        <div class="tooltip-title">${d.category}</div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg MPG:</span>
+                            <span>${d.mpg.toFixed(1)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg HP:</span>
+                            <span>${d.horsepower.toFixed(1)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg Weight:</span>
+                            <span>${d.weight.toFixed(0)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Count:</span>
+                            <span>${d.count} cars</span>
+                        </div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.transition()
+                        .duration(500)
+                        .style('opacity', 0);
+                });
+        }
+        
+        function updateBarChartWithSelection() {
+            const selectedCategories = new Set(
+                globalState.selectedData.map(d => d[globalState.colorBy])
+            );
+            
+            barChart.selectAll('.bar')
+                .style('opacity', d => selectedCategories.has(d.category) ? 1 : 0.3);
+                
+            barChart.selectAll('.bar-label')
+                .style('opacity', d => selectedCategories.has(d.category) ? 1 : 0.3);
+        }
+        
+        // Line Chart
+        let lineChart, lineX, lineY;
+        
+        function createLineChart() {
+            const container = document.getElementById('linechart-vis');
+            const width = container.clientWidth;
+            const height = 300;
+            const margin = {top: 40, right: 80, bottom: 50, left: 60};
+            
+            // Create SVG
+            const svg = d3.select('#linechart-vis')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            // Create scales
+            lineX = d3.scaleLinear()
+                .domain([70, 82]) // Model years range
+                .range([margin.left, width - margin.right]);
+                
+            lineY = d3.scaleLinear()
+                .range([height - margin.bottom, margin.top]);
+            
+            // Create axes
+            const xAxis = svg.append('g')
+                .attr('transform', `translate(0,${height - margin.bottom})`)
+                .call(d3.axisBottom(lineX).tickFormat(d => `'${d}`)); // Format as '70, '71, etc.
+                
+            const yAxis = svg.append('g')
+                .attr('transform', `translate(${margin.left},0)`);
+            
+            // Create axis labels
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('x', width / 2)
+                .attr('y', height - 10)
+                .text('Model Year');
+                
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('transform', `translate(${margin.left / 3},${height / 2}) rotate(-90)`)
+                .text('Value');
+            
+            // Create line chart group
+            lineChart = svg.append('g')
+                .attr('class', 'line-chart');
+                
+            // Create legend
+            const metrics = ['MPG', 'Horsepower / 10', 'Weight / 100'];
+            const colors = ['#1f77b4', '#ff7f0e', '#2ca02c'];
+            
+            const legend = svg.append('g')
+                .attr('class', 'line-legend')
+                .attr('transform', `translate(${width - margin.right + 10}, ${margin.top})`);
+                
+            metrics.forEach((metric, i) => {
+                const g = legend.append('g')
+                    .attr('transform', `translate(0, ${i * 20})`);
+                    
+                g.append('line')
+                    .attr('x1', 0)
+                    .attr('x2', 20)
+                    .attr('y1', 10)
+                    .attr('y2', 10)
+                    .attr('stroke', colors[i])
+                    .attr('stroke-width', 2);
+                    
+                g.append('text')
+                    .attr('x', 25)
+                    .attr('y', 13)
+                    .attr('font-size', '10px')
+                    .text(metric);
+            });
+            
+            // Update with data
+            updateLineChart();
+        }
+        
+        function updateLineChart() {
+            const data = globalState.filteredData;
+            const height = 300;
+            const margin = {top: 40, right: 80, bottom: 50, left: 60};
+            
+            // Group data by model year
+            const yearData = Array.from(
+                d3.group(data, d => d['Model Year']),
+                ([year, values]) => ({
+                    year,
+                    mpg: d3.mean(values, d => d.MPG),
+                    horsepower: d3.mean(values, d => d.Horsepower) / 10, // Scale down for visualization
+                    weight: d3.mean(values, d => d.Weight) / 100, // Scale down for visualization
+                    count: values.length
+                })
+            ).sort((a, b) => a.year - b.year);
+            
+            // Update y scale
+            const yMax = d3.max([
+                d3.max(yearData, d => d.mpg),
+                d3.max(yearData, d => d.horsepower),
+                d3.max(yearData, d => d.weight)
+            ]) * 1.1;
+            
+            lineY.domain([0, yMax]);
+            
+            // Update y axis
+            d3.select('#linechart-vis svg g:nth-of-type(2)')
+                .transition()
+                .duration(500)
+                .call(d3.axisLeft(lineY));
+            
+            // Line generators
+            const mpgLine = d3.line()
+                .x(d => lineX(d.year))
+                .y(d => lineY(d.mpg))
+                .curve(d3.curveMonotoneX);
+                
+            const hpLine = d3.line()
+                .x(d => lineX(d.year))
+                .y(d => lineY(d.horsepower))
+                .curve(d3.curveMonotoneX);
+                
+            const weightLine = d3.line()
+                .x(d => lineX(d.year))
+                .y(d => lineY(d.weight))
+                .curve(d3.curveMonotoneX);
+            
+            // Update MPG line
+            const mpgPath = lineChart.selectAll('.mpg-line')
+                .data([yearData]);
+                
+            mpgPath.enter()
+                .append('path')
+                .attr('class', 'line mpg-line')
+                .merge(mpgPath)
+                .transition()
+                .duration(500)
+                .attr('d', mpgLine)
+                .attr('stroke', '#1f77b4')
+                .attr('fill', 'none')
+                .attr('stroke-width', 2);
+            
+            // Update Horsepower line
+            const hpPath = lineChart.selectAll('.hp-line')
+                .data([yearData]);
+                
+            hpPath.enter()
+                .append('path')
+                .attr('class', 'line hp-line')
+                .merge(hpPath)
+                .transition()
+                .duration(500)
+                .attr('d', hpLine)
+                .attr('stroke', '#ff7f0e')
+                .attr('fill', 'none')
+                .attr('stroke-width', 2);
+            
+            // Update Weight line
+            const weightPath = lineChart.selectAll('.weight-line')
+                .data([yearData]);
+                
+            weightPath.enter()
+                .append('path')
+                .attr('class', 'line weight-line')
+                .merge(weightPath)
+                .transition()
+                .duration(500)
+                .attr('d', weightLine)
+                .attr('stroke', '#2ca02c')
+                .attr('fill', 'none')
+                .attr('stroke-width', 2);
+            
+            // Add points for each year
+            // MPG points
+            const mpgPoints = lineChart.selectAll('.mpg-point')
+                .data(yearData);
+                
+            mpgPoints.exit().remove();
+            
+            mpgPoints.enter()
+                .append('circle')
+                .attr('class', 'mpg-point')
+                .merge(mpgPoints)
+                .transition()
+                .duration(500)
+                .attr('cx', d => lineX(d.year))
+                .attr('cy', d => lineY(d.mpg))
+                .attr('r', 4)
+                .attr('fill', '#1f77b4');
+            
+            // HP points
+            const hpPoints = lineChart.selectAll('.hp-point')
+                .data(yearData);
+                
+            hpPoints.exit().remove();
+            
+            hpPoints.enter()
+                .append('circle')
+                .attr('class', 'hp-point')
+                .merge(hpPoints)
+                .transition()
+                .duration(500)
+                .attr('cx', d => lineX(d.year))
+                .attr('cy', d => lineY(d.horsepower))
+                .attr('r', 4)
+                .attr('fill', '#ff7f0e');
+            
+            // Weight points
+            const weightPoints = lineChart.selectAll('.weight-point')
+                .data(yearData);
+                
+            weightPoints.exit().remove();
+            
+            weightPoints.enter()
+                .append('circle')
+                .attr('class', 'weight-point')
+                .merge(weightPoints)
+                .transition()
+                .duration(500)
+                .attr('cx', d => lineX(d.year))
+                .attr('cy', d => lineY(d.weight))
+                .attr('r', 4)
+                .attr('fill', '#2ca02c');
+                
+            // Add tooltips and interaction
+            const tooltip = d3.select('body').select('.tooltip');
+            
+            lineChart.selectAll('circle')
+                .on('mouseover', function(event, d) {
+                    tooltip.transition()
+                        .duration(200)
+                        .style('opacity', .9);
+                        
+                    tooltip.html(`
+                        <div class="tooltip-title">Model Year: ${d.year}</div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg MPG:</span>
+                            <span>${d.mpg.toFixed(1)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg HP:</span>
+                            <span>${(d.horsepower * 10).toFixed(1)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Avg Weight:</span>
+                            <span>${(d.weight * 100).toFixed(0)}</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Count:</span>
+                            <span>${d.count} cars</span>
+                        </div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function() {
+                    tooltip.transition()
+                        .duration(500)
+                        .style('opacity', 0);
+                })
+                .on('click', function(event, d) {
+                    // Filter to show only cars from this year
+                    const yearCars = globalState.filteredData.filter(car => 
+                        car['Model Year'] === d.year
+                    );
+                    updateSelection(yearCars);
+                });
+        }
+        
+        function updateLineChartWithSelection() {
+            // Get all selected years and their data
+            const selectedYears = new Set(
+                globalState.selectedData.map(d => d['Model Year'])
+            );
+            
+            // Get year data for selected cars only
+            const selectedData = globalState.selectedData;
+            let selectedYearData = [];
+            
+            if (selectedYears.size > 0) {
+                selectedYearData = Array.from(
+                    d3.group(selectedData, d => d['Model Year']),
+                    ([year, values]) => ({
+                        year,
+                        mpg: d3.mean(values, d => d.MPG),
+                        horsepower: d3.mean(values, d => d.Horsepower) / 10,
+                        weight: d3.mean(values, d => d.Weight) / 100,
+                        count: values.length
+                    })
+                ).sort((a, b) => a.year - b.year);
+            }
+            
+            // Update point visibility and size based on selection
+            lineChart.selectAll('circle')
+                .style('opacity', function(d) {
+                    return selectedYears.has(d.year) ? 1 : 0.3;
+                })
+                .attr('r', function(d) {
+                    return selectedYears.has(d.year) ? 6 : 4;
+                })
+                .style('stroke-width', function(d) {
+                    return selectedYears.has(d.year) ? 2 : 0;
+                })
+                .style('stroke', '#333');
+                
+            // Fade all lines initially
+            lineChart.selectAll('.line')
+                .style('opacity', 0.2)
+                .style('stroke-width', 1);
+            
+            // If we have selected data, highlight those segments
+            if (selectedYearData.length > 0) {
+                // Add or update highlighted lines for selected data
+                
+                // MPG line for selected data
+                const mpgLine = d3.line()
+                    .x(d => lineX(d.year))
+                    .y(d => lineY(d.mpg))
+                    .curve(d3.curveMonotoneX);
+                
+                let selectedMpgLine = lineChart.select('.selected-mpg-line');
+                if (selectedMpgLine.empty()) {
+                    selectedMpgLine = lineChart.append('path')
+                        .attr('class', 'line selected-mpg-line');
+                }
+                
+                selectedMpgLine
+                    .datum(selectedYearData)
+                    .transition()
+                    .duration(300)
+                    .attr('d', mpgLine)
+                    .attr('stroke', '#1f77b4')
+                    .attr('stroke-width', 3)
+                    .attr('fill', 'none')
+                    .style('opacity', 1);
+                
+                // Horsepower line for selected data
+                const hpLine = d3.line()
+                    .x(d => lineX(d.year))
+                    .y(d => lineY(d.horsepower))
+                    .curve(d3.curveMonotoneX);
+                
+                let selectedHpLine = lineChart.select('.selected-hp-line');
+                if (selectedHpLine.empty()) {
+                    selectedHpLine = lineChart.append('path')
+                        .attr('class', 'line selected-hp-line');
+                }
+                
+                selectedHpLine
+                    .datum(selectedYearData)
+                    .transition()
+                    .duration(300)
+                    .attr('d', hpLine)
+                    .attr('stroke', '#ff7f0e')
+                    .attr('stroke-width', 3)
+                    .attr('fill', 'none')
+                    .style('opacity', 1);
+                
+                // Weight line for selected data
+                const weightLine = d3.line()
+                    .x(d => lineX(d.year))
+                    .y(d => lineY(d.weight))
+                    .curve(d3.curveMonotoneX);
+                
+                let selectedWeightLine = lineChart.select('.selected-weight-line');
+                if (selectedWeightLine.empty()) {
+                    selectedWeightLine = lineChart.append('path')
+                        .attr('class', 'line selected-weight-line');
+                }
+                
+                selectedWeightLine
+                    .datum(selectedYearData)
+                    .transition()
+                    .duration(300)
+                    .attr('d', weightLine)
+                    .attr('stroke', '#2ca02c')
+                    .attr('stroke-width', 3)
+                    .attr('fill', 'none')
+                    .style('opacity', 1);
+            } else {
+                // Remove the selected lines if there's no selection
+                lineChart.select('.selected-mpg-line').remove();
+                lineChart.select('.selected-hp-line').remove();
+                lineChart.select('.selected-weight-line').remove();
+                
+                // Make the original lines more visible again
+                lineChart.selectAll('.mpg-line, .hp-line, .weight-line')
+                    .style('opacity', 1)
+                    .style('stroke-width', 2);
+            }
+            
+            // Add brush to line chart if it doesn't exist
+            if (lineChart.select('.temporal-brush').empty()) {
+                const brushGroup = lineChart.append('g')
+                    .attr('class', 'temporal-brush');
+                
+                const temporalBrush = d3.brushX()
+                    .extent([[lineX.range()[0], lineY.range()[1]], [lineX.range()[1], lineY.range()[0]]])
+                    .on('end', temporalBrushended);
+                
+                brushGroup.call(temporalBrush);
+                
+                function temporalBrushended(event) {
+                    if (!event.selection) {
+                        // If no selection, return to initial state
+                        return;
+                    }
+                    
+                    // Get the years range from the brush
+                    const [x0, x1] = event.selection.map(lineX.invert);
+                    const minYear = Math.floor(x0);
+                    const maxYear = Math.ceil(x1);
+                    
+                    // Filter cars by the selected year range
+                    const yearFilteredCars = globalState.filteredData.filter(d => 
+                        d['Model Year'] >= minYear && d['Model Year'] <= maxYear
+                    );
+                    
+                    // Update the selection
+                    updateSelection(yearFilteredCars);
+                    
+                    // Clear the brush after selection
+                    brushGroup.call(temporalBrush.move, null);
+                }
+            }
+        }
+        
+        // Pie Chart
+        let pieChart, pieColorScale, pieData;
+        
+        function createPieChart() {
+            const container = document.getElementById('piechart-vis');
+            const width = container.clientWidth;
+            const height = 220;
+            const radius = Math.min(width, height) / 2 - 30;
+            
+            // Create SVG
+            const svg = d3.select('#piechart-vis')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height)
+                .append('g')
+                .attr('transform', `translate(${width / 2}, ${height / 2})`);
+            
+            // Create pie layout
+            const pie = d3.pie()
+                .value(d => d.value)
+                .sort(null);
+            
+            // Create arc generator
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius);
+            
+            const labelArc = d3.arc()
+                .innerRadius(radius * 0.6)
+                .outerRadius(radius * 0.6);
+            
+            // Pie chart group
+            pieChart = svg.append('g')
+                .attr('class', 'pie-chart');
+            
+            // Update with data
+            updatePieChart();
+            
+            // Add a title for the pie chart
+            d3.select('#pie-title').text(globalState.colorBy);
+        }
+        
+        function updatePieChart() {
+            const data = globalState.filteredData;
+            const container = document.getElementById('piechart-vis');
+            const width = container.clientWidth;
+            const height = 220;
+            const radius = Math.min(width, height) / 2 - 30;
+            
+            // Update title
+            d3.select('#pie-title').text(globalState.colorBy);
+            
+            // Group data by the colorBy attribute
+            const counts = d3.rollup(
+                data,
+                v => v.length,
+                d => d[globalState.colorBy]
+            );
+            
+            pieData = Array.from(counts, ([key, value]) => ({
+                category: key,
+                value: value
+            })).sort((a, b) => b.value - a.value);
+            
+            // Create arc generators
+            const arc = d3.arc()
+                .innerRadius(0)
+                .outerRadius(radius);
+            
+            const labelArc = d3.arc()
+                .innerRadius(radius * 0.6)
+                .outerRadius(radius * 0.6);
+            
+            // Create pie layout
+            const pie = d3.pie()
+                .value(d => d.value)
+                .sort(null);
+            
+            // Update the pie slices
+            const pieSlices = pieChart.selectAll('.pie-slice')
+                .data(pie(pieData), d => d.data.category);
+            
+            pieSlices.exit().remove();
+            
+            // Enter + update
+            const enterSlices = pieSlices.enter()
+                .append('path')
+                .attr('class', 'pie-slice');
+            
+            enterSlices.merge(pieSlices)
+                .transition()
+                .duration(500)
+                .attr('d', arc)
+                .attr('fill', d => colorSchemes[globalState.colorBy][d.data.category])
+                .attr('stroke', 'white')
+                .attr('stroke-width', 1);
+            
+            // Add labels
+            const pieLabels = pieChart.selectAll('.pie-label')
+                .data(pie(pieData), d => d.data.category);
+            
+            pieLabels.exit().remove();
+            
+            const enterLabels = pieLabels.enter()
+                .append('text')
+                .attr('class', 'pie-label');
+            
+            enterLabels.merge(pieLabels)
+                .transition()
+                .duration(500)
+                .attr('transform', d => `translate(${labelArc.centroid(d)})`)
+                .attr('dy', '0.35em')
+                .attr('text-anchor', 'middle')
+                .text(d => {
+                    const percent = Math.round(d.data.value / d3.sum(pieData, d => d.value) * 100);
+                    return percent >= 5 ? `${percent}%` : '';
+                });
+            
+            // Add tooltip
+            const tooltip = d3.select('body').select('.tooltip');
+            
+            pieChart.selectAll('.pie-slice')
+                .on('mouseover', function(event, d) {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('transform', `translate(${arc.centroid(d).map(v => v * 0.1)})`)
+                        .style('opacity', 1);
+                    
+                    tooltip.transition()
+                        .duration(200)
+                        .style('opacity', .9);
+                    
+                    const percent = Math.round(d.data.value / d3.sum(pieData, d => d.value) * 100);
+                    
+                    tooltip.html(`
+                        <div class="tooltip-title">${d.data.category}</div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Count:</span>
+                            <span>${d.data.value} cars</span>
+                        </div>
+                        <div class="tooltip-row">
+                            <span class="tooltip-label">Percentage:</span>
+                            <span>${percent}%</span>
+                        </div>
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+                })
+                .on('mouseout', function() {
+                    d3.select(this)
+                        .transition()
+                        .duration(200)
+                        .attr('transform', 'translate(0,0)')
+                        .style('opacity', function(d) {
+                            const selectedCategories = new Set(
+                                globalState.selectedData.map(d => d[globalState.colorBy])
+                            );
+                            return selectedCategories.has(d.data.category) ? 1 : 0.3;
+                        });
+                    
+                    tooltip.transition()
+                        .duration(500)
+                        .style('opacity', 0);
+                })
+                .on('click', function(event, d) {
+                    // Filter to show only cars of this category
+                    const categoryData = globalState.filteredData.filter(car => 
+                        car[globalState.colorBy] === d.data.category
+                    );
+                    updateSelection(categoryData);
+                });
+        }
+        
+        function updatePieChartWithSelection() {
+            const selectedCategories = new Set(
+                globalState.selectedData.map(d => d[globalState.colorBy])
+            );
+            
+            pieChart.selectAll('.pie-slice')
+                .style('opacity', d => selectedCategories.has(d.data.category) ? 1 : 0.3);
+            
+            pieChart.selectAll('.pie-label')
+                .style('opacity', d => selectedCategories.has(d.data.category) ? 1 : 0.3);
+        }
+        
+        function updateAllVisualizations() {
+            updateScatterPlot();
+            updateBarChart();
+            updateLineChart();
+            updatePieChart();
+            updateDetails();
+            updateMetrics();
+        }
+        
+        // Initialize when page loads
+        loadData();
+    </script>
+</body>
+</html>
